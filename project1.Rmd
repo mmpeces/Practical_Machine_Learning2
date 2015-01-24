@@ -1,0 +1,85 @@
+#machine learning
+#project 1
+
+
+
+#####Question: Can a prediction model be built using the training data the successfully predicts predict the manner in which HAR test subjests did their exercise?
+
+#####Data: Data and a description of the data can be found at http://groupware.les.inf.puc-rio.br/har.  The training and test datasets must be downloaded and stored in working directory. The predictor is in the classe variable, A = proper implementation of the exercise while B to E are different improper methods.  
+
+
+```{r, cache=TRUE}
+train <- read.csv("./train.csv", na.strings=c("NA","#DIV/0!", ""))
+test <- read.csv("./test.csv", na.strings=c("NA","#DIV/0!", ""))
+dim(train); dim(test)
+```
+
+
+#####Features: Blanks, "#DIV/0!" were replaced with "NA" during data import.  Below, columns that contained no values where removed.  Columns 1 through 7 containing rowname, subject name, and date variables were eliminated since they will not contribute to predict.
+Cross-validation was used by splitting the training data into training and test data set.  These sets will be used to evaluate models built with training on the test subset.  
+
+```{r}
+train2 <- train[,colSums(is.na(train)) == 0]
+train3 <- train2[,-c(1:7)]
+
+test2 <- test[,colSums(is.na(test)) == 0]
+test3 <- test2[,-c(1:7)]
+```
+
+
+
+#####Algorithms: Rpart and randomForest were used to predict classe on subset of training data.
+
+
+Install packages and load libraries.  Messages and warning supressed.
+```{r}
+library(caret)
+library(kernlab)
+library(randomForest)
+library(rpart)
+```
+
+```{r, message=FALSE, warning=FALSE, cache=TRUE}
+set.seed(1234)
+inTrain <- createDataPartition(y=train3$classe, p=0.6, list=FALSE)
+training <- train3[inTrain,]
+testing <- train3[-inTrain,]
+
+#rpart
+mod.fit1 <- rpart(classe ~ ., data=training, method="class")
+predict1 <- predict(mod.fit1, testing, type = "class")
+confusionMatrix(predict1, testing$classe)
+
+#randomForest
+mod.fit2 <- randomForest(classe ~ ., data=training, method="class")
+predict2 <- predict(mod.fit2, testing, type = "class")
+confusionMatrix(predict2, testing$classe)
+```
+
+
+#####Conclusions
+  RandomForest did a better job predicting the data so is used to test the independent data set.  The accuracy for rpart was 73% while the accuracy for randomForest was over 99.24%.  With this high of a percent for randomForest it is unlikely any test observeration will produce out ofsample errors.
+  
+  
+#####Submission file creation
+```{r}
+predict.anwsers <- predict(mod.fit2, test3, type="class")
+
+pml_write_files = function(x){
+        n = length(x)
+        for(i in 1:n){
+                filename = paste0("problem_id_",i,".txt")
+                write.table(x[i],file=filename,quote=FALSE,row.names=FALSE,col.names=FALSE)
+        }
+}
+
+        
+pml_write_files(predict.anwsers)
+```
+
+The answers submitted are below.
+```{r}
+predict.anwsers
+```
+
+
